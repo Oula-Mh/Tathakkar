@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "382894080834",
+    "project_id": "tathakkar-app",
+    "storage_bucket": "tathakkar-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:382894080834:android:df2e7baa29ceef40a7bedb",
+        "android_client_info": {
+          "package_name": "com.tathakkar.tathakkar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByrQh8DJb6aQzoPgN2R1Cq6SSBH27GNkM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
