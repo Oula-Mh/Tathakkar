@@ -5,32 +5,48 @@ const admin = require('firebase-admin');
 
 admin.initializeApp();
 const db = admin.firestore();
+
 const GRACE_MS = 30 * 60 * 1000;
+const STALE_MS = 6 * 60 * 60 * 1000; // never notify about doses older than this
+const CHANNEL = 'caregiver_alerts_v2'; // created by the app (NotificationService)
 
 async function notifyCaregiver(elderUid, item, push) {
   const link = await db.collection('careLinks').doc(elderUid).get();
   if (!link.exists) return false; // nobody to notify
-  const caregiverUid = link.data().caregiverUid;
-  const personName = link.data().elderName || '';
+  const { caregiverUid, elderName = '' } = link.data();
 
-  await db.collection('users').doc(caregiverUid).collection('notifications').add({
+  const userRef = db.collection('users').doc(caregiverUid);
+  await userRef.collection('notifications').add({
     ...item,
-    personName,
+    personName: elderName,
     createdAt: Date.now(),
   });
 
-  const user = await db.collection('users').doc(caregiverUid).get();
-  const tokens = (user.data() || {}).fcmTokens || [];
-  if (tokens.length) {
-    await admin.messaging().sendEachForMulticast({
-      tokens,
-      notification: { title: push.title(personName), body: push.body(personName) },
-    });
+  const tokens = ((await userRef.get()).data() || {}).fcmTokens || [];
+  if (tokens.length === 0) return true;
+
+  const res = await admin.messaging().sendEachForMulticast({
+    tokens,
+    notification: { title: push.title, body: push.body(elderName) },
+    data: { type: item.type },
+    android: { priority: 'high', notification: { channelId: CHANNEL, sound: 'default' } },
+    apns: { headers: { 'apns-priority': '10' }, payload: { aps: { sound: 'default' } } },
+  });
+
+  // Remove tokens of uninstalled / signed-out devices.
+  const dead = [];
+  res.responses.forEach((r, i) => {
+    const code = r.error && r.error.code;
+    if (code === 'messaging/registration-token-not-registered' ||
+        code === 'messaging/invalid-registration-token') dead.push(tokens[i]);
+  });
+  if (dead.length) {
+    await userRef.update({ fcmTokens: admin.firestore.FieldValue.arrayRemove(...dead) });
   }
   return true;
 }
 
-// Every 5 minutes: pending doses older than 30 min -> unconfirmed + notify once.
+// Every 5 minutes: pending doses older than 30 minutes -> missed + notify ONCE.
 exports.detectUnconfirmedDoses = onSchedule('every 5 minutes', async () => {
   const cutoff = Date.now() - GRACE_MS;
   const snap = await db.collectionGroup('doseLogs')
@@ -41,18 +57,30 @@ exports.detectUnconfirmedDoses = onSchedule('every 5 minutes', async () => {
     .get();
 
   for (const doc of snap.docs) {
-    // path: users/{owner}/profiles/{pid}/doseLogs/{id}
-    const owner = doc.ref.path.split('/')[1];
-    const d = doc.data();
-    await notifyCaregiver(
-      owner,
-      { type: 'missed_dose', medicationName: d.medicationName, scheduledAt: d.scheduledAt, amount: d.amount },
-      {
-        title: () => 'جرعة غير مؤكدة / Unconfirmed dose',
-        body: (name) => `${name}: ${d.medicationName}`,
-      },
-    );
-    await doc.ref.update({ status: 'missed', notifiedMissed: true });
+    try {
+      // Claim the document atomically so overlapping runs never notify twice.
+      const claimed = await db.runTransaction(async (tx) => {
+        const s = await tx.get(doc.ref);
+        if (!s.exists || s.data().status !== 'pending' || s.data().notifiedMissed === true) return false;
+        tx.update(doc.ref, { status: 'missed', notifiedMissed: true });
+        return true;
+      });
+      if (!claimed) continue;
+
+      const d = doc.data();
+      if (Date.now() - d.scheduledAt > STALE_MS) continue; // too old: record only
+      const owner = doc.ref.path.split('/')[1]; // users/{owner}/profiles/{pid}/doseLogs/{id}
+      await notifyCaregiver(
+        owner,
+        { type: 'missed_dose', medicationName: d.medicationName, scheduledAt: d.scheduledAt, amount: d.amount },
+        {
+          title: 'جرعة غير مؤكدة / Unconfirmed dose',
+          body: (name) => `${name}: ${d.medicationName}`,
+        },
+      );
+    } catch (e) {
+      console.error('detectUnconfirmedDoses failed for', doc.ref.path, e);
+    }
   }
 });
 
@@ -60,13 +88,13 @@ exports.detectUnconfirmedDoses = onSchedule('every 5 minutes', async () => {
 exports.onStockChange = onDocumentUpdated(
   'users/{uid}/profiles/{pid}/medications/{mid}',
   async (event) => {
-    const before = event.data.before.data();
-    const after = event.data.after.data();
-    if (before.remaining === after.remaining) return;
+    const before = event.data && event.data.before.data();
+    const after = event.data && event.data.after.data();
+    if (!before || !after || before.remaining === after.remaining) return;
 
     const threshold = after.alertThreshold ?? 5;
-    const crossedLow = before.remaining > threshold && after.remaining <= threshold && after.remaining > 0;
     const hitZero = before.remaining > 0 && after.remaining <= 0;
+    const crossedLow = before.remaining > threshold && after.remaining <= threshold && after.remaining > 0;
     if (!crossedLow && !hitZero) return;
 
     await notifyCaregiver(
@@ -78,7 +106,7 @@ exports.onStockChange = onDocumentUpdated(
         threshold,
       },
       {
-        title: () => (hitZero ? 'نفد الدواء / Out of stock' : 'الدواء أوشك على النفاد / Running low'),
+        title: hitZero ? 'نفد الدواء / Out of stock' : 'الدواء أوشك على النفاد / Running low',
         body: (name) => `${name}: ${after.name} (${after.remaining})`,
       },
     );

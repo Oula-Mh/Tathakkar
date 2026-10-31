@@ -15,14 +15,20 @@ class ProfilesBloc extends Bloc<ProfilesEvent, ProfilesState> {
     on<ProfilesWatchRequested>(_onWatch);
     on<ProfileSelected>((e, emit) => emit(state.copyWith(selectedKey: e.key)));
     on<LocalProfileAdded>(_onAdd);
+    on<ProfilesRetryRequested>((e, emit) {
+      final uid = _uid;
+      if (uid != null) add(ProfilesWatchRequested(uid: uid, userName: _userName));
+    });
   }
 
   final WatchProfiles _watch;
   final AddLocalProfile _add;
   String? _uid;
+  String _userName = '';
 
   Future<void> _onWatch(ProfilesWatchRequested e, Emitter<ProfilesState> emit) {
     _uid = e.uid;
+    _userName = e.userName;
     return emit.forEach(
       _watch(e.uid, e.userName),
       onData: (result) => result.fold(

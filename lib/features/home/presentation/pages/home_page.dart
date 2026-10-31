@@ -13,6 +13,7 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_snackbar.dart';
 import '../../../../core/widgets/circle_icon_button.dart';
 import '../../../../core/widgets/glass_card.dart';
+import '../../../../core/widgets/now_builder.dart';
 import '../../../../core/widgets/state_views.dart';
 import '../../../doses/domain/entities/scheduled_dose.dart';
 import '../../../doses/domain/usecases/doses_usecases.dart';
@@ -25,6 +26,7 @@ import '../../../profiles/presentation/bloc/profiles_bloc.dart';
 import '../../../reminders/domain/entities/reminder_payload.dart';
 import '../widgets/dose_tile.dart';
 import '../widgets/profile_switcher.dart';
+import '../widgets/reminder_health_banner.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -45,18 +47,23 @@ class HomePage extends StatelessWidget {
         error: true,
       ),
       child: AppScaffold(
-        scrollable: false,
+        strongBackground: true,
         titleWidget: const ProfileSwitcher(),
+
+        scrollable: false,
         title: '',
         trailing: CircleIconButton(
           icon: Icons.notifications_none_rounded,
           tooltip: context.tr(L.notificationsTitle),
           onPressed: () => context.push(Routes.inbox),
         ),
-        body: profile == null || meds.status == MedicationsStatus.loading
-            // ?const LoadingView()
+        body: profile == null
             ? ListView(children: const [SizedBox(height: 16), SkeletonList()])
-            : _body(context, profile, meds, doses),
+            // NowBuilder: dose status (upcoming -> due -> unconfirmed) follows the clock.
+            : NowBuilder(
+                builder: (context, now) =>
+                    _body(context, profile, meds, doses, now),
+              ),
       ),
     );
   }
@@ -66,11 +73,8 @@ class HomePage extends StatelessWidget {
     PersonProfile profile,
     MedicationsState meds,
     DosesState doses,
+    DateTime now,
   ) {
-    // if (meds.status == MedicationsStatus.loading || doses.loading && meds.medications.isNotEmpty) {
-    //   // return ListView(children: const [ProfileSwitcher(), SizedBox(height: 16), SkeletonList()]);
-    //   return ListView(children: const [SizedBox(height: 8), SkeletonList()]);
-    // }
     if (meds.status == MedicationsStatus.failure) {
       return ErrorView(
         messageKey: meds.failureKey ?? 'err_unknown',
@@ -79,12 +83,21 @@ class HomePage extends StatelessWidget {
         ),
       );
     }
+    if (meds.status == MedicationsStatus.failure) {
+      return ErrorView(
+        messageKey: meds.failureKey ?? 'err_unknown',
+        onRetry: () => context.read<MedicationsBloc>().add(
+          MedicationsWatchRequested(profile, force: true),
+        ),
+      );
+    }
 
     final header = [
-      //   // const ProfileSwitcher(),
-      //  const SizedBox(height: 8),
+      // const ProfileSwitcher(),
+      const SizedBox(height: 8),
       ProfileContextBanner(profile: profile),
       const SizedBox(height: 12),
+      const ReminderHealthBanner(),
     ];
 
     if (meds.medications.isEmpty) {
@@ -169,7 +182,6 @@ class HomePage extends StatelessWidget {
     }
 
     const builder = BuildDaySchedule();
-    final now = DateTime.now();
     final today = builder(
       medications: meds.medications,
       logs: doses.logs,

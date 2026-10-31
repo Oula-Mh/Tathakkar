@@ -10,6 +10,12 @@ abstract interface class ProfilesRepository {
     required String userName,
   });
 
+  Future<Either<Failure, Unit>> ensureSelfProfile({
+    required String uid,
+    required String name,
+    required String email,
+  });
+
   Future<Either<Failure, PersonProfile>> addLocalProfile({
     required String uid,
     required String name,

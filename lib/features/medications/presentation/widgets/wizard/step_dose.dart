@@ -10,7 +10,6 @@ import '../../../../../core/widgets/glass_card.dart';
 import '../../../../../core/widgets/number_stepper.dart';
 import '../../../domain/entities/medication.dart';
 import '../../bloc/form/medication_form_bloc.dart';
-import '../med_labels.dart';
 
 class StepDose extends StatefulWidget {
   const StepDose({super.key, required this.state});

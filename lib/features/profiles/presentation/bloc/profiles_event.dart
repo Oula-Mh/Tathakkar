@@ -28,3 +28,8 @@ class LocalProfileAdded extends ProfilesEvent {
   @override
   List<Object?> get props => [name, relation];
 }
+
+/// "Try again" after a failed/ended stream.
+class ProfilesRetryRequested extends ProfilesEvent {
+  const ProfilesRetryRequested();
+}

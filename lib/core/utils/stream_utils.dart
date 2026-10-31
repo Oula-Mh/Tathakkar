@@ -52,7 +52,7 @@ Stream<R> combineLatest3<A, B, C, R>(
 /// Maps a data stream to Either, turning stream errors into Failures
 /// so a broken stream never crashes a BLoC.
 Stream<Either<Failure, T>> eitherStream<T>(Stream<T> source) =>
-    source. transform(StreamTransformer<T, Either<Failure, T>>.fromHandlers(
+    source.transform(StreamTransformer<T, Either<Failure, T>>.fromHandlers(
       handleData: (data, sink) => sink.add(Right(data)),
       handleError: (e, st, sink) => sink.add(Left(ErrorMapper.toFailure(e, st))),
     ));

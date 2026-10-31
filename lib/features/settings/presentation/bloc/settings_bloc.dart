@@ -16,7 +16,7 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     on<DarkModeChanged>((e, emit) => _apply(emit, state.settings.copyWith(darkMode: e.enabled)));
     on<OnboardingCompleted>((e, emit) => _apply(emit, state.settings.copyWith(onboardingSeen: true)));
     on<NotificationsPrompted>(
-        (e, emit) => _apply(emit, state.settings.copyWith(notificationsPrompted: true)));
+        ( e, emit) => _apply(emit, state.settings.copyWith(notificationsPrompted: true)));
     on<ReminderPrefsChanged>((e, emit) => _apply(
           emit,
           state.settings.copyWith(

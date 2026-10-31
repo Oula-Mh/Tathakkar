@@ -29,3 +29,20 @@ class AddLocalProfile implements UseCase<PersonProfile, AddLocalProfileParams> {
   Future<Either<Failure, PersonProfile>> call(AddLocalProfileParams p) =>
       _repo.addLocalProfile(uid: p.uid, name: p.name.trim(), relation: p.relation);
 }
+
+class EnsureSelfProfileParams extends Equatable {
+  const EnsureSelfProfileParams({required this.uid, required this.name, required this.email});
+  final String uid;
+  final String name;
+  final String email;
+  @override
+  List<Object?> get props => [uid, name, email];
+}
+
+class EnsureSelfProfile implements UseCase<Unit, EnsureSelfProfileParams> {
+  const EnsureSelfProfile(this._repo);
+  final ProfilesRepository _repo;
+  @override
+  Future<Either<Failure, Unit>> call(EnsureSelfProfileParams p) =>
+      _repo.ensureSelfProfile(uid: p.uid, name: p.name, email: p.email);
+}

@@ -27,7 +27,12 @@ class FamilyPage extends StatelessWidget {
             onPressed: () => context.push(Routes.familyAdd),
           ),
           body: s.status == ProfilesStatus.failure
-              ? SizedBox(height: 300, child: ErrorView(messageKey: s.failureKey ?? 'err_unknown'))
+              ? SizedBox(
+                  height: 300,
+                  child: ErrorView(
+                    messageKey: s.failureKey ?? 'err_unknown',
+                    onRetry: () => context.read<ProfilesBloc>().add(const ProfilesRetryRequested()),
+                  ))
               : Column(children: [
                   for (final p in s.profiles)
                     Padding(

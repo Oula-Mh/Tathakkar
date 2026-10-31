@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/l10n_keys.dart';
+import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
@@ -62,6 +64,12 @@ class ReminderSettingsPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(context.tr(L.defaultsNote), style: TextStyle(fontSize: 12.5, color: context.inkSoftColor)),
           ]),
+        ),
+        const SizedBox(height: 12),
+        AppButton(
+          label: context.tr(L.healthTitle),
+          icon: Icons.alarm_on_rounded,
+          onPressed: () => context.push(Routes.reminderHealth),
         ),
         const SizedBox(height: 12),
         Container(

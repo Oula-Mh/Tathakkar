@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/di/injection.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/l10n_keys.dart';
+import '../../../../core/router/routes.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/state_views.dart';
@@ -21,11 +22,16 @@ class NotificationPermissionPage extends StatelessWidget {
       final router = GoRouter.of(context);
       if (request) {
         try {
-          await getIt<NotificationService>().requestPermission();
+          await getIt<NotificationService>().requestNotifications();
         } catch (_) {}
       }
       settings.add(const NotificationsPrompted());
-      if (router.canPop()) router.pop();
+      // Alarms also need exact-alarm / battery settings: guide the user right away.
+      if (request) {
+        router.pushReplacement(Routes.reminderHealth);
+      } else if (router.canPop()) {
+        router.pop();
+      }
     }
 
     return AppScaffold(

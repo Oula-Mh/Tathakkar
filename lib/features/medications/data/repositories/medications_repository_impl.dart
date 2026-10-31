@@ -15,18 +15,35 @@ class MedicationsRepositoryImpl implements MedicationsRepository {
   final MedicationsLocalDataSource _local;
 
 
+// @override
+// Stream<Either<Failure, List<Medication>>> watch(
+//   PersonProfile profile,
+// ) async* {
+//   final cached = _local.read(profile.key);
+//   if (cached != null) {
+//     yield Right<Failure, List<Medication>>(cached);
+//   }
+
+//   final live = _remote.watch(profile).map((models) {
+//     _local.write(profile.key, models);
+//     return models.map<Medication>((model) => model).toList();
+//   });
+
+//   yield* eitherStream<List<Medication>>(live);
+// }
 @override
 Stream<Either<Failure, List<Medication>>> watch(
   PersonProfile profile,
 ) async* {
   final cached = _local.read(profile.key);
+
   if (cached != null) {
     yield Right<Failure, List<Medication>>(cached);
   }
 
-  final live = _remote.watch(profile).map((models) {
+  final live = _remote.watch(profile).map<List<Medication>>((models) {
     _local.write(profile.key, models);
-    return models.map<Medication>((model) => model).toList();
+    return models;
   });
 
   yield* eitherStream<List<Medication>>(live);

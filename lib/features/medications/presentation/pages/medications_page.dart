@@ -44,7 +44,7 @@ class MedicationsPage extends StatelessWidget {
                 messageKey: s.failureKey ?? 'err_unknown',
                 onRetry: profile == null
                     ? null
-                    : () => context.read<MedicationsBloc>().add(MedicationsWatchRequested(profile)),
+                    : () => context.read<MedicationsBloc>().add(MedicationsWatchRequested(profile, force: true)),
               );
             case MedicationsStatus.ready:
               if (s.medications.isEmpty) {

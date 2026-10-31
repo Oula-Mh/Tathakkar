@@ -19,5 +19,23 @@ abstract interface class ReminderScheduler {
     required String languageCode,
   });
 
+  /// Stops the ringing notification that opened the screen, keeping tomorrow's alarm.
+  Future<void> silence(
+    ReminderPayload payload,
+    Medication medication, {
+    required String profileName,
+    required String languageCode,
+  });
+
+  /// A dose was confirmed (on this phone OR another one): stop its snoozes,
+  /// dismiss its ringing alarm and don't ring again today.
+  Future<void> acknowledge(
+    PersonProfile profile,
+    Medication medication,
+    int minutesOfDay, {
+    required String languageCode,
+  });
+
   Future<void> cancelSnooze(ReminderPayload payload);
+  Future<void> cancelAll();
 }

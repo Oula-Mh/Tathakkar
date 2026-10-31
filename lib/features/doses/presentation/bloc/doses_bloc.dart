@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
@@ -30,10 +31,12 @@ class DosesBloc extends Bloc<DosesEvent, DosesState> {
   StreamSubscription<Either<Failure, List<DoseLog>>>? _sub;
 
   void _onWatch(DosesWatchRequested e, Emitter<DosesState> emit) {
-    if (_profile == e.profile) return;
+    if (!e.force && _profile == e.profile) return;
+    final same = _profile == e.profile;
     _profile = e.profile;
     _sub?.cancel();
-    emit(const DosesState());
+    _retry?.cancel();
+    emit(same ? state.copyWith(logs: state.logs, loading: state.logs.isEmpty) : const DosesState());
     final today = DateTime.now().dateOnly;
     // Yesterday..tomorrow covers late-night doses and day-boundary edges.
     _sub = _watch(
@@ -43,9 +46,27 @@ class DosesBloc extends Bloc<DosesEvent, DosesState> {
     ).listen((r) => add(DosesUpdated(r)));
   }
 
+  Timer? _retry;
+  int _attempt = 0;
+
   void _onUpdated(DosesUpdated e, Emitter<DosesState> emit) => emit(e.result.fold(
-        (f) => state.copyWith(loading: false, failureKey: f.messageKey),
-        (logs) => state.copyWith(logs: logs, loading: false),
+        (f) {
+          if (f is NetworkFailure || f is ServerFailure) {
+            final p = _profile;
+            if (p != null) {
+              _retry?.cancel();
+              _attempt = math.min(_attempt + 1, 6);
+              _retry = Timer(Duration(seconds: math.min(2 << _attempt, 60)), () {
+                if (!isClosed) add(DosesWatchRequested(p, force: true));
+              });
+            }
+          }
+          return state.copyWith(logs: state.logs, loading: false, failureKey: f.messageKey);
+        },
+        (logs) {
+          _attempt = 0;
+          return state.copyWith(logs: logs, loading: false);
+        },
       ));
 
   Future<void> _onConfirm(DoseConfirmRequested e, Emitter<DosesState> emit) async {
@@ -63,6 +84,7 @@ class DosesBloc extends Bloc<DosesEvent, DosesState> {
 
   @override
   Future<void> close() {
+    _retry?.cancel();
     _sub?.cancel();
     return super.close();
   }

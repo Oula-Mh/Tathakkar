@@ -83,4 +83,24 @@ class ProfilesRemoteDataSource {
       relation: relation,
     );
   }
+
+  /// Registration writes these docs in a batch AFTER the Auth account exists.
+  /// If that batch failed (rules, network) the account would have no user doc,
+  /// so this idempotent check repairs it on the next sign-in.
+  Future<void> ensureSelf(String uid, String name, String email) async {
+    final userRef = _db.collection(FirestorePaths.users).doc(uid);
+    final selfRef = userRef.collection(FirestorePaths.profiles).doc(FirestorePaths.selfProfileId);
+    final results = await Future.wait([userRef.get(), selfRef.get()]);
+    final batch = _db.batch();
+    var dirty = false;
+    if (!results[0].exists) {
+      batch.set(userRef, {'name': name, 'email': email, 'createdAt': FieldValue.serverTimestamp()});
+      dirty = true;
+    }
+    if (!results[1].exists) {
+      batch.set(selfRef, {'name': name, 'kind': 'self', 'createdAt': FieldValue.serverTimestamp()});
+      dirty = true;
+    }
+    if (dirty) await batch.commit();
+  }
 }

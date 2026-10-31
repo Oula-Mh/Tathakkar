@@ -4,9 +4,11 @@ import '../../../../core/di/injection.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/l10n_keys.dart';
 import '../../../../core/router/app_router.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/gradient_background.dart';
+import '../widgets/capsule_icon.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -20,7 +22,9 @@ class _SplashPageState extends State<SplashPage> {
   void initState() {
     super.initState();
     // Minimum branding time; the router then decides where to go.
-    Future.delayed(const Duration(milliseconds: 1800), () {
+    // An alarm that opened the app must show its screen immediately.
+    final fromAlarm = getIt<NotificationService>().hasLaunchTap;
+    Future.delayed(Duration(milliseconds: fromAlarm ? 250 : 1800), () {
       if (mounted) getIt<AppRouter>().markSplashDone();
     });
   }
@@ -34,7 +38,7 @@ class _SplashPageState extends State<SplashPage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const AppLogo(size: 110),
+                const _AppLogo(),
                 const SizedBox(height: 20),
                 Text(
                   context.tr(L.appName),
@@ -59,36 +63,61 @@ class _SplashPageState extends State<SplashPage> {
 }
 
 /// App mark: glass square with a pill and a check badge.
-class AppLogo extends StatelessWidget {
-  const AppLogo({super.key, this.size = 88});
-  final double size;
+class _AppLogo extends StatelessWidget {
+  const _AppLogo();
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: size,
-        height: size,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 108,
+      height: 108,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: <Widget>[
+          Positioned.fill(
+            child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.35),
-                borderRadius: BorderRadius.circular(size * 0.3),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.7), width: 1.4),
+                color: AppColors.ink.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(
+                  color: AppColors.ink.withValues(alpha: 0.45),
+                  width: 1.5,
+                ),
               ),
-              child: Icon(Icons.medication_rounded, size: size * 0.5, color: Colors.white),
-            ),
-            PositionedDirectional(
-              top: -6,
-              end: -6,
-              child: Container(
-                width: size * 0.3,
-                height: size * 0.3,
-                decoration: const BoxDecoration(color: AppColors.turquoise, shape: BoxShape.circle),
-                child: Icon(Icons.check, size: size * 0.18, color: Colors.white),
+              child:  Center(
+                child: CapsuleIcon(
+                  width: 72,
+                  height: 32,
+                  angle: -0.85,
+                  leftColor: AppColors.turquoise,
+                  rightColor: AppColors.ink,
+                ),
               ),
             ),
-          ],
-        ),
-      );
+          ),
+          Positioned(
+            top: -10,
+            right: -10,
+            child: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.ink.withValues(alpha: 0.22),
+                border: Border.all(
+                  color: AppColors.ink.withValues(alpha: 0.85),
+                  width: 1.8,
+                ),
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                size: 20,
+                color: AppColors.ink,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

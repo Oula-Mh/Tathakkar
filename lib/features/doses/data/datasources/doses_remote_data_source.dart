@@ -84,7 +84,10 @@ class DosesRemoteDataSource {
 
     final batch = _db.batch()
       ..set(logRef, _takenData(med, scheduledAt), SetOptions(merge: true))
-      ..update(medRef, {'remaining': FieldValue.increment(-med.dosePerTake)});
+      ..update(medRef, {
+        // Clamp locally: the security rules reject negative stock.
+        'remaining': FieldValue.increment(-(med.remaining < med.dosePerTake ? med.remaining : med.dosePerTake)),
+      });
     // Offline the commit only completes on reconnect; the write is queued locally.
     await batch.commit().timeout(const Duration(seconds: 2), onTimeout: () {});
   }

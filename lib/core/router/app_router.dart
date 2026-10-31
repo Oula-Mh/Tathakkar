@@ -27,18 +27,23 @@ import '../../features/medications/presentation/pages/stock_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/profiles/presentation/pages/add_family_page.dart';
 import '../../features/profiles/presentation/pages/family_page.dart';
+import '../../features/reminders/presentation/pages/reminder_health_page.dart';
 import '../../features/reminders/presentation/pages/reminder_page.dart';
 import '../../features/settings/presentation/bloc/settings_bloc.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
+import '../localization/app_localizations.dart';
 import 'routes.dart';
 
 /// Owns the GoRouter. Redirects react to splash, session and onboarding state.
 class AppRouter {
-  AppRouter({required SessionBloc session, required SettingsBloc settings})
-      : _session = session,
+  AppRouter({
+    required SessionBloc session,
+    required SettingsBloc settings,
+    String? initialLocation, // set when an alarm started the app
+  })  : _session = session,
         _settings = settings {
     router = GoRouter(
-      initialLocation: Routes.splash,
+      initialLocation: initialLocation ?? Routes.splash,
       refreshListenable: Listenable.merge([
         splashDone,
         _BlocListenable(session.stream),
@@ -59,6 +64,8 @@ class AppRouter {
 
   String? _redirect(BuildContext context, GoRouterState state) {
     final loc = state.matchedLocation;
+    // An alarm screen is shown IMMEDIATELY: never behind the splash or home.
+    if (loc == Routes.reminder && state.uri.queryParameters['alarm'] == '1') return null;
     final session = _session.state;
     final ready = splashDone.value && session is! SessionUnknown;
     if (!ready) return loc == Routes.splash ? null : Routes.splash;
@@ -127,10 +134,15 @@ class AppRouter {
         GoRoute(path: Routes.careUnlinked, builder: (c, s) => const CareUnlinkedPage()),
         GoRoute(path: Routes.inbox, builder: (c, s) => const InboxPage()),
         GoRoute(path: Routes.reminderSettings, builder: (c, s) => const ReminderSettingsPage()),
+        GoRoute(path: Routes.reminderHealth, builder: (c, s) => const ReminderHealthPage()),
         GoRoute(path: Routes.notificationPermission, builder: (c, s) => const NotificationPermissionPage()),
         GoRoute(
           path: Routes.reminder,
-          builder: (c, s) => ReminderPage(rawPayload: s.uri.queryParameters['p'] ?? ''),
+          builder: (c, s) => ReminderPage(
+            rawPayload: s.uri.queryParameters['p'] ?? '',
+            autoAction: s.uri.queryParameters['a'],
+            alarmMode: s.uri.queryParameters['alarm'] == '1',
+          ),
         ),
       ],
     ),
@@ -158,7 +170,7 @@ class _NotFoundPage extends StatelessWidget {
         body: Center(
           child: TextButton(
             onPressed: () => context.go(Routes.home),
-            child: const Text('Home'),
+            child: Text(context.tr('back_to_home')),
           ),
         ),
       );

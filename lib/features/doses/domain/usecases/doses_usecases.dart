@@ -71,7 +71,7 @@ class BuildDaySchedule {
         final log = byId[doseLogId(med.id, at)];
         final status = log?.status == DoseStatus.taken
             ? DoseDisplayStatus.taken
-            : _derive(at, now, log?.status == DoseStatus.missed);
+            : _derive(at, now, med.snoozeMinutes);
         result.add(ScheduledDose(medication: med, scheduledAt: at, status: status));
       }
     }
@@ -79,9 +79,12 @@ class BuildDaySchedule {
     return result;
   }
 
-  DoseDisplayStatus _derive(DateTime at, DateTime now, bool markedMissed) {
-    final grace = at.add(const Duration(minutes: BusinessRules.missedDoseGraceMinutes));
-    if (markedMissed || now.isAfter(grace)) return DoseDisplayStatus.unconfirmed;
+  /// upcoming -> (exact time) due -> [stays due through every snooze] -> unconfirmed.
+  /// The server's "missed" flag is deliberately ignored here so the status never
+  /// flips to unconfirmed while the reminders are still ringing.
+  DoseDisplayStatus _derive(DateTime at, DateTime now, int snoozeMinutes) {
+    final end = at.add(Duration(minutes: BusinessRules.reminderWindowMinutes(snoozeMinutes)));
+    if (now.isAfter(end)) return DoseDisplayStatus.unconfirmed;
     if (!now.isBefore(at)) return DoseDisplayStatus.due;
     return DoseDisplayStatus.upcoming;
   }

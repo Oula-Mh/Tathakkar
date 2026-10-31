@@ -8,10 +8,11 @@ sealed class DosesEvent extends Equatable {
 
 /// Watch today's logs for a profile (cancels the previous subscription).
 class DosesWatchRequested extends DosesEvent {
-  const DosesWatchRequested(this.profile);
+  const DosesWatchRequested(this.profile, {this.force = false});
   final PersonProfile profile;
+  final bool force;
   @override
-  List<Object?> get props => [profile];
+  List<Object?> get props => [profile, force];
 }
 
 /// Internal: emitted by the stream subscription.

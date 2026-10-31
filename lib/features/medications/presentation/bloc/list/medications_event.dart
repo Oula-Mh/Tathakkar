@@ -7,10 +7,13 @@ sealed class MedicationsEvent extends Equatable {
 }
 
 class MedicationsWatchRequested extends MedicationsEvent {
-  const MedicationsWatchRequested(this.profile);
+  const MedicationsWatchRequested(this.profile, {this.force = false});
   final PersonProfile profile;
+
+  /// true = resubscribe even for the same profile (retry after a failure).
+  final bool force;
   @override
-  List<Object?> get props => [profile];
+  List<Object?> get props => [profile, force];
 }
 
 /// Internal: emitted by the stream subscription.

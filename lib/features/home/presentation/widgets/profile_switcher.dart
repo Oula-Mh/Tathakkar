@@ -19,19 +19,11 @@ class ProfileAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => CircleAvatar(
-    radius: size / 2,
-    backgroundColor: profile.isRemote
-        ? AppColors.slateBlue
-        : AppColors.turquoise,
-    child: Text(
-      profile.initial,
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: size * 0.42,
-        fontWeight: FontWeight.w800,
-      ),
-    ),
-  );
+        radius: size / 2,
+        backgroundColor: profile.isRemote ? AppColors.slateBlue : AppColors.turquoise,
+        child: Text(profile.initial,
+            style: TextStyle(color: Colors.white, fontSize: size * 0.42, fontWeight: FontWeight.w800)),
+      );
 }
 
 String profileLabel(BuildContext c, PersonProfile p) =>
@@ -49,41 +41,24 @@ class ProfileSwitcher extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: state.profiles.length > 1 ? () => _open(context) : null,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ProfileAvatar(profile: p),
-          const SizedBox(width: 10),
-          Flexible(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  context.tr(L.greetingMorning),
-                  style: TextStyle(fontSize: 12.5, color: context.inkSoftColor),
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      child: Text(
-                        profileLabel(context, p),
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    if (state.profiles.length > 1)
-                      const Icon(Icons.keyboard_arrow_down_rounded),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        ProfileAvatar(profile: p),
+        const SizedBox(width: 10),
+        Flexible(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(context.tr(L.greetingMorning),
+                style: TextStyle(fontSize: 12.5, color: context.inkSoftColor)),
+            Row(mainAxisSize: MainAxisSize.min, children: [
+              Flexible(
+                child: Text(profileLabel(context, p),
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              ),
+              if (state.profiles.length > 1) const Icon(Icons.keyboard_arrow_down_rounded),
+            ]),
+          ]),
+        ),
+      ]),
     );
   }
 
@@ -97,39 +72,30 @@ class ProfileSwitcher extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           child: GlassCard(
             tint: ctx.isDark ? null : Colors.white.withValues(alpha: 0.95),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final p in bloc.state.profiles)
-                  ListTile(
-                    leading: ProfileAvatar(profile: p),
-                    title: Text(
-                      profileLabel(ctx, p),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    subtitle: p.isRemote ? Text(ctx.tr(L.remoteCare)) : null,
-                    trailing: p.key == bloc.state.selected?.key
-                        ? const Icon(
-                            Icons.check_circle,
-                            color: AppColors.turquoise,
-                          )
-                        : null,
-                    onTap: () {
-                      bloc.add(ProfileSelected(p.key));
-                      Navigator.pop(ctx);
-                    },
-                  ),
-                const Divider(),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              for (final p in bloc.state.profiles)
                 ListTile(
-                  leading: const Icon(Icons.groups_rounded),
-                  title: Text(ctx.tr(L.familyTitle)),
+                  leading: ProfileAvatar(profile: p),
+                  title: Text(profileLabel(ctx, p), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: p.isRemote ? Text(ctx.tr(L.remoteCare)) : null,
+                  trailing: p.key == bloc.state.selected?.key
+                      ? const Icon(Icons.check_circle, color: AppColors.turquoise)
+                      : null,
                   onTap: () {
+                    bloc.add(ProfileSelected(p.key));
                     Navigator.pop(ctx);
-                    context.push(Routes.family);
                   },
                 ),
-              ],
-            ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.groups_rounded),
+                title: Text(ctx.tr(L.familyTitle)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.push(Routes.family);
+                },
+              ),
+            ]),
           ),
         ),
       ),
@@ -145,18 +111,10 @@ class ProfileContextBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (profile.isRemote) {
-      return StatusChip(
-        label: context.tr(L.remoteCare),
-        tone: ChipTone.info,
-        icon: Icons.favorite_outline,
-      );
+      return StatusChip(label: context.tr(L.remoteCare), tone: ChipTone.info, icon: Icons.favorite_outline);
     }
     if (profile.isSelf && profile.managedByUid != null) {
-      return StatusChip(
-        label: context.tr(L.managedByCaregiver),
-        tone: ChipTone.info,
-        icon: Icons.lock_outline,
-      );
+      return StatusChip(label: context.tr(L.managedByCaregiver), tone: ChipTone.info, icon: Icons.lock_outline);
     }
     return const SizedBox.shrink();
   }

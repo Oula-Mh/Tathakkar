@@ -25,6 +25,7 @@ class MainShell extends StatelessWidget {
     ];
     return GradientBackground(
       strong: true,
+
       child: BackgroundScope(
         child: Scaffold(
           backgroundColor: Colors.transparent,

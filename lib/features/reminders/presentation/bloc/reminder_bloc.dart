@@ -51,6 +51,11 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
           status: ReminderStatus.failure, payload: e.payload, failureKey: f.messageKey),
       (m) => ReminderState(status: ReminderStatus.ready, medication: m, payload: e.payload),
     ));
+    // The screen is open: stop the system alarm sound and keep tomorrow's alarm.
+    final med = state.medication;
+    if (med != null) {
+      await _scheduler.silence(e.payload, med, profileName: _profileName, languageCode: _lang);
+    }
   }
 
   Future<void> _onTaken(ReminderTakenPressed e, Emitter<ReminderState> emit) async {
@@ -72,7 +77,11 @@ class ReminderBloc extends Bloc<ReminderEvent, ReminderState> {
     if (m == null || p == null || !state.canSnooze || state.status == ReminderStatus.working) return;
     emit(state.copyWith(status: ReminderStatus.working));
     // Snoozing is NOT a confirmation: no stock change, no log.
-    await _scheduler.snooze(p, m, profileName: _profileName, languageCode: _lang);
-    emit(state.copyWith(status: ReminderStatus.snoozed));
+    try {
+      await _scheduler.snooze(p, m, profileName: _profileName, languageCode: _lang);
+      emit(state.copyWith(status: ReminderStatus.snoozed));
+    } catch (_) {
+      emit(state.copyWith(status: ReminderStatus.ready, actionFailureKey: 'err_snooze_failed'));
+    }
   }
 }

@@ -30,11 +30,14 @@ class ReminderState extends Equatable {
 
   DateTime? get scheduledAt => payload?.originalTime(DateTime.now());
 
-  /// True once the 30-minute grace period has passed.
-  bool get isUnconfirmed =>
-      scheduledAt != null &&
-      DateTime.now()
-          .isAfter(scheduledAt!.add(const Duration(minutes: BusinessRules.missedDoseGraceMinutes)));
+  /// True once the whole reminder sequence (ring + snoozes + last ring) is over.
+  bool get isUnconfirmed {
+    final at = scheduledAt;
+    if (at == null) return false;
+    final minutes = BusinessRules.reminderWindowMinutes(
+        medication?.snoozeMinutes ?? BusinessRules.defaultSnoozeMinutes);
+    return DateTime.now().isAfter(at.add(Duration(minutes: minutes)));
+  }
 
   ReminderState copyWith({
     ReminderStatus? status,

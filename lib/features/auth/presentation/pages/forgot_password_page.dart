@@ -17,9 +17,9 @@ class ForgotPasswordPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-        create: (_) => getIt<ForgotPasswordBloc>(),
-        child: const _ForgotView(),
-      );
+    create: (_) => getIt<ForgotPasswordBloc>(),
+    child: const _ForgotView(),
+  );
 }
 
 class _ForgotView extends StatelessWidget {
@@ -29,10 +29,12 @@ class _ForgotView extends StatelessWidget {
   Widget build(BuildContext context) {
     final bloc = context.read<ForgotPasswordBloc>();
     return BlocConsumer<ForgotPasswordBloc, ForgotPasswordState>(
-      listenWhen: (p, c) => p.failureKey != c.failureKey && c.failureKey != null,
-      listener: (context, s) => AppSnackbar.show(context, context.tr(s.failureKey!), error: true),
+      listenWhen: (p, c) =>
+          p.failureKey != c.failureKey && c.failureKey != null,
+      listener: (context, s) =>
+          AppSnackbar.show(context, context.tr(s.failureKey!), error: true),
       builder: (context, s) => AuthLayout(
-        showBack: true,
+        // showBack: true,
         title: context.tr(L.resetTitle),
         subtitle: context.tr(L.resetSub),
         footer: TextButton(
@@ -60,11 +62,19 @@ class _ForgotView extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_outline, color: AppColors.success),
+                  const Icon(
+                    Icons.check_circle_outline,
+                    color: AppColors.success,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(context.tr(L.resetSent),
-                        style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w600)),
+                    child: Text(
+                      context.tr(L.resetSent),
+                      style: const TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ],
               ),

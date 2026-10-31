@@ -17,9 +17,9 @@ class RegisterPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-        create: (_) => getIt<RegisterBloc>(),
-        child: const _RegisterView(),
-      );
+    create: (_) => getIt<RegisterBloc>(),
+    child: const _RegisterView(),
+  );
 }
 
 class _RegisterView extends StatelessWidget {
@@ -31,10 +31,12 @@ class _RegisterView extends StatelessWidget {
     String? err(String? key) => key == null ? null : context.tr(key);
 
     return BlocConsumer<RegisterBloc, RegisterState>(
-      listenWhen: (p, c) => p.failureKey != c.failureKey && c.failureKey != null,
-      listener: (context, s) => AppSnackbar.show(context, context.tr(s.failureKey!), error: true),
+      listenWhen: (p, c) =>
+          p.failureKey != c.failureKey && c.failureKey != null,
+      listener: (context, s) =>
+          AppSnackbar.show(context, context.tr(s.failureKey!), error: true),
       builder: (context, s) => AuthLayout(
-        showBack: true,
+        // showBack: true,
         title: context.tr(L.createAccountTitle),
         subtitle: context.tr(L.createAccountSub),
         footer: AuthSwitchLink(
@@ -87,10 +89,18 @@ class _RegisterView extends StatelessWidget {
             controlAffinity: ListTileControlAffinity.leading,
             value: s.acceptedTerms,
             onChanged: (v) => bloc.add(RegisterTermsToggled(v ?? false)),
-            title: Text(context.tr(L.acceptTerms), style: const TextStyle(fontSize: 14.5)),
+            title: Text(
+              context.tr(L.acceptTerms),
+              style: const TextStyle(fontSize: 14.5),
+            ),
             subtitle: s.termsError
-                ? Text(context.tr(L.errTermsRequired),
-                    style: const TextStyle(color: AppColors.danger, fontSize: 13))
+                ? Text(
+                    context.tr(L.errTermsRequired),
+                    style: const TextStyle(
+                      color: AppColors.danger,
+                      fontSize: 13,
+                    ),
+                  )
                 : null,
           ),
           const SizedBox(height: 10),

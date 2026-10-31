@@ -17,9 +17,9 @@ class LoginPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-    create: (_) => getIt<LoginBloc>(),
-    child: const _LoginView(),
-  );
+        create: (_) => getIt<LoginBloc>(),
+        child: const _LoginView(),
+      );
 }
 
 class _LoginView extends StatelessWidget {
@@ -29,10 +29,8 @@ class _LoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     final bloc = context.read<LoginBloc>();
     return BlocConsumer<LoginBloc, LoginState>(
-      listenWhen: (p, c) =>
-          p.failureKey != c.failureKey && c.failureKey != null,
-      listener: (context, s) =>
-          AppSnackbar.show(context, context.tr(s.failureKey!), error: true),
+      listenWhen: (p, c) => p.failureKey != c.failureKey && c.failureKey != null,
+      listener: (context, s) => AppSnackbar.show(context, context.tr(s.failureKey!), error: true),
       builder: (context, s) => AuthLayout(
         title: context.tr(L.welcomeBack),
         subtitle: context.tr(L.welcomeBackSub),
@@ -45,6 +43,7 @@ class _LoginView extends StatelessWidget {
           AppTextField(
             label: context.tr(L.email),
             hint: 'name@mail.com',
+            forceLtr: true,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             autofillHints: const [AutofillHints.email],
@@ -55,11 +54,10 @@ class _LoginView extends StatelessWidget {
           AppTextField(
             label: context.tr(L.password),
             obscure: true,
+            forceLtr: true,
             textInputAction: TextInputAction.done,
             autofillHints: const [AutofillHints.password],
-            errorText: s.passwordError == null
-                ? null
-                : context.tr(s.passwordError!),
+            errorText: s.passwordError == null ? null : context.tr(s.passwordError!),
             onChanged: (v) => bloc.add(LoginPasswordChanged(v)),
             onSubmitted: (_) => bloc.add(const LoginSubmitted()),
           ),

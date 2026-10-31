@@ -2,70 +2,136 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
 
+    // ------------------------------------------------------------ helpers
     function signedIn() { return request.auth != null; }
     function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
-    function careLinkPath(uid) { return /databases/$(db)/documents/careLinks/$(uid); }
+    function linkPath(uid) { return /databases/$(db)/documents/careLinks/$(uid); }
+    function isManaged(uid) { return exists(linkPath(uid)); }
     function isCaregiverOf(uid) {
-      return signedIn() && exists(careLinkPath(uid))
-        && get(careLinkPath(uid)).data.caregiverUid == request.auth.uid;
+      return signedIn() && exists(linkPath(uid))
+        && get(linkPath(uid)).data.caregiverUid == request.auth.uid;
     }
-    function isManaged(uid) { return exists(careLinkPath(uid)); }
-
     // Who may add/edit/delete medications of profile `pid` owned by `uid`.
+    // An elder under care can NOT manage their own 'self' profile.
     function canManage(uid, pid) {
       return (isOwner(uid) && (pid != 'self' || !isManaged(uid)))
           || (pid == 'self' && isCaregiverOf(uid));
     }
+    function canSeeProfile(uid, pid) {
+      return isOwner(uid) || (pid == 'self' && isCaregiverOf(uid));
+    }
+    function str(v, max) { return v is string && v.size() > 0 && v.size() <= max; }
+    function tokenAfter(t) {
+      return getAfter(/databases/$(db)/documents/linkTokens/$(t)).data;
+    }
 
+    // ---------------------------------------------------------- validators
+    function validUser(d) {
+      return d.keys().hasOnly(['name', 'email', 'createdAt', 'fcmTokens'])
+        && (!('name' in d) || str(d.name, 100))
+        && (!('fcmTokens' in d) || (d.fcmTokens is list && d.fcmTokens.size() <= 20));
+    }
+    function validProfile(d) {
+      return d.keys().hasOnly(['name', 'kind', 'relation', 'createdAt']) && str(d.name, 100);
+    }
+    function validMedication(d) {
+      return str(d.name, 120)
+        && d.type in ['permanent', 'temporary']
+        && d.startDate is int
+        && d.dosePerTake is int && d.dosePerTake >= 1 && d.dosePerTake <= 99
+        && d.times is list && d.times.size() >= 1 && d.times.size() <= 12
+        && d.notes is list && d.notes.size() <= 20
+        && d.packSize is int && d.packSize >= 0 && d.packSize <= 100000
+        && d.remaining is int && d.remaining >= 0 && d.remaining <= 100000
+        && d.alertThreshold is int && d.alertThreshold >= 0 && d.alertThreshold <= 100000
+        && d.snoozeMinutes is int && d.snoozeMinutes >= 1 && d.snoozeMinutes <= 60;
+    }
+    // Clients may only write pending/taken. 'missed' is written by Cloud Functions.
+    function validDoseLog(d) {
+      return str(d.medicationId, 100)
+        && d.status in ['pending', 'taken']
+        && d.scheduledAt is int
+        && d.amount is int && d.amount >= 1 && d.amount <= 99;
+    }
+
+    // ------------------------------------------------------------- users
     match /users/{uid} {
-      allow read: if isOwner(uid) || isCaregiverOf(uid);
-      allow write: if isOwner(uid);
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validUser(request.resource.data);
+      allow delete: if false;
 
       match /profiles/{pid} {
-        allow read: if isOwner(uid) || isCaregiverOf(uid);
-        allow write: if isOwner(uid);
+        allow read: if canSeeProfile(uid, pid);
+        allow create, update: if isOwner(uid) && validProfile(request.resource.data);
+        allow delete: if isOwner(uid) && pid != 'self';
 
         match /medications/{mid} {
-          allow read: if isOwner(uid) || (pid == 'self' && isCaregiverOf(uid));
-          allow create, delete: if canManage(uid, pid);
-          // Elder under care may only change the stock counter (dose confirmation).
-          allow update: if canManage(uid, pid)
-            || (isOwner(uid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['remaining']));
+          allow read: if canSeeProfile(uid, pid);
+          allow create: if canManage(uid, pid) && validMedication(request.resource.data);
+          allow update: if (canManage(uid, pid) && validMedication(request.resource.data))
+            // Elder under care: only the stock counter, and only downwards
+            // (that is what confirming a dose does).
+            || (isOwner(uid)
+                && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['remaining'])
+                && request.resource.data.remaining is int
+                && request.resource.data.remaining >= 0
+                && request.resource.data.remaining <= resource.data.remaining);
+          allow delete: if canManage(uid, pid);
         }
 
         match /doseLogs/{lid} {
-          allow read: if isOwner(uid) || (pid == 'self' && isCaregiverOf(uid));
-          allow write: if isOwner(uid) || (pid == 'self' && isCaregiverOf(uid));
+          allow read: if canSeeProfile(uid, pid);
+          allow create, update: if canSeeProfile(uid, pid) && validDoseLog(request.resource.data);
+          allow delete: if false;
         }
       }
 
-      // Written by Cloud Functions only.
+      // Written by Cloud Functions only (Admin SDK bypasses rules).
       match /notifications/{nid} {
-        allow read: if isOwner(uid);
-        allow write: if false;
+        allow read, delete: if isOwner(uid);
+        allow create, update: if false;
       }
     }
 
-    // One-time QR tokens (unguessable 32-char ids).
+    // ---------------------------------------------- one-time link tokens
+    // 32 random characters: unguessable. Nobody may LIST them.
     match /linkTokens/{token} {
-      allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
-      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'ownerName', 'expiresAt', 'used'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.used == false
+        && request.resource.data.expiresAt is int
+        && request.resource.data.expiresAt > request.time.toMillis() - 300000
+        && request.resource.data.expiresAt <= request.time.toMillis() + 1200000;
+      allow get: if signedIn();
+      allow list: if false;
       allow update: if signedIn()
         && resource.data.used == false
         && resource.data.ownerUid != request.auth.uid
+        && resource.data.expiresAt > request.time.toMillis() - 60000
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['used', 'usedBy'])
+        && request.resource.data.used == true
         && request.resource.data.usedBy == request.auth.uid;
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
     }
 
+    // ------------------------------------------------ elder <-> caregiver
+    // Doc id = elder uid => at most ONE caregiver per elder.
     match /careLinks/{elderUid} {
-      allow read: if isOwner(elderUid)
-        || (signedIn() && resource != null && resource.data.caregiverUid == request.auth.uid);
+      // get: needed so a caregiver's transaction can see whether the elder is
+      // already linked (the id is an unguessable uid). list: only my own links.
+      allow get: if signedIn();
+      allow list: if signedIn() && resource.data.caregiverUid == request.auth.uid;
       allow create: if signedIn()
-        && request.resource.data.caregiverUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(
+             ['elderUid', 'elderName', 'caregiverUid', 'caregiverName', 'token', 'createdAt'])
         && request.resource.data.elderUid == elderUid
-        && getAfter(/databases/$(db)/documents/linkTokens/$(request.resource.data.token)).data.used == true
-        && getAfter(/databases/$(db)/documents/linkTokens/$(request.resource.data.token)).data.ownerUid == elderUid
-        && getAfter(/databases/$(db)/documents/linkTokens/$(request.resource.data.token)).data.usedBy == request.auth.uid;
+        && request.resource.data.caregiverUid == request.auth.uid
+        && request.resource.data.caregiverUid != elderUid
+        && tokenAfter(request.resource.data.token).used == true
+        && tokenAfter(request.resource.data.token).ownerUid == elderUid
+        && tokenAfter(request.resource.data.token).usedBy == request.auth.uid;
+      allow update: if false;
       // Only the elder can unlink for now (open policy decision in the spec).
       allow delete: if isOwner(elderUid);
     }

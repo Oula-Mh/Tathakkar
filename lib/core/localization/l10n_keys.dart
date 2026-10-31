@@ -2,6 +2,8 @@
 abstract final class L {
   static const acceptTerms = 'accept_terms';
   static const accountTitle = 'account_title';
+  static const actionSnoozeShort = 'action_snooze_short';
+  static const actionTaken = 'action_taken';
   static const activeProfile = 'active_profile';
   static const add = 'add';
   static const addFamilyMember = 'add_family_member';
@@ -28,6 +30,7 @@ abstract final class L {
   static const cancel = 'cancel';
   static const careAndFamily = 'care_and_family';
   static const caregiverCanManage = 'caregiver_can_manage';
+  static const channelStock = 'channel_stock';
   static const chooseDate = 'choose_date';
   static const close = 'close';
   static const confirmPassword = 'confirm_password';
@@ -94,7 +97,9 @@ abstract final class L {
   static const errPermission = 'err_permission';
   static const errPickImage = 'err_pick_image';
   static const errServer = 'err_server';
+  static const errSnoozeFailed = 'err_snooze_failed';
   static const errTermsRequired = 'err_terms_required';
+  static const errTestFailed = 'err_test_failed';
   static const errTitle = 'err_title';
   static const errUnknown = 'err_unknown';
   static const familyTitle = 'family_title';
@@ -108,6 +113,24 @@ abstract final class L {
   static const gallery = 'gallery';
   static const greetingMorning = 'greeting_morning';
   static const haveAccount = 'have_account';
+  static const healthAllGood = 'health_all_good';
+  static const healthBanner = 'health_banner';
+  static const healthBattery = 'health_battery';
+  static const healthBatteryHint = 'health_battery_hint';
+  static const healthExactAlarms = 'health_exact_alarms';
+  static const healthExactAlarmsHint = 'health_exact_alarms_hint';
+  static const healthFix = 'health_fix';
+  static const healthFullScreen = 'health_full_screen';
+  static const healthFullScreenHint = 'health_full_screen_hint';
+  static const healthNeedsAttention = 'health_needs_attention';
+  static const healthNotifications = 'health_notifications';
+  static const healthNotificationsHint = 'health_notifications_hint';
+  static const healthScheduledCount = 'health_scheduled_count';
+  static const healthTestHint = 'health_test_hint';
+  static const healthTestIn10 = 'health_test_in10';
+  static const healthTestNow = 'health_test_now';
+  static const healthTestScheduled = 'health_test_scheduled';
+  static const healthTitle = 'health_title';
   static const historyTitle = 'history_title';
   static const homeEmptySub = 'home_empty_sub';
   static const homeEmptyTitle = 'home_empty_title';
@@ -254,6 +277,10 @@ abstract final class L {
   static const stepReview = 'step_review';
   static const stepStock = 'step_stock';
   static const stock = 'stock';
+  static const stockAlertLowBody = 'stock_alert_low_body';
+  static const stockAlertLowTitle = 'stock_alert_low_title';
+  static const stockAlertOutBody = 'stock_alert_out_body';
+  static const stockAlertOutTitle = 'stock_alert_out_title';
   static const stockDeductNote = 'stock_deduct_note';
   static const stockDetails = 'stock_details';
   static const stockLow = 'stock_low';
@@ -264,6 +291,8 @@ abstract final class L {
   static const stockStatusTitle = 'stock_status_title';
   static const stockUnit = 'stock_unit';
   static const stockUpdated = 'stock_updated';
+  static const testAlarmBody = 'test_alarm_body';
+  static const testAlarmTitle = 'test_alarm_title';
   static const times = 'times';
   static const todaySchedule = 'today_schedule';
   static const tookMedicine = 'took_medicine';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:dartz/dartz.dart';
 import 'package:equatable/equatable.dart';
@@ -33,22 +34,47 @@ class MedicationsBloc extends Bloc<MedicationsEvent, MedicationsState> {
   PersonProfile? _profile;
   StreamSubscription<Either<Failure, List<Medication>>>? _sub;
 
+  Timer? _retry;
+  int _attempt = 0;
+
   void _onWatch(MedicationsWatchRequested e, Emitter<MedicationsState> emit) {
-    if (_profile == e.profile) return;
+    if (!e.force && _profile == e.profile) return;
+    final sameProfile = _profile == e.profile;
     _profile = e.profile;
     _sub?.cancel();
-    emit(const MedicationsState());
+    _retry?.cancel();
+    // Keep the cached list visible while reconnecting to the same profile.
+    emit(sameProfile ? state.copyWith(status: state.medications.isEmpty ? MedicationsStatus.loading : MedicationsStatus.ready) : const MedicationsState());
     _sub = _watch(e.profile).listen((r) => add(MedicationsUpdated(r)));
   }
 
   void _onUpdated(MedicationsUpdated e, Emitter<MedicationsState> emit) {
     emit(e.result.fold(
       // Keep showing cached data if the live stream fails.
-      (f) => state.medications.isEmpty
-          ? state.copyWith(status: MedicationsStatus.failure, failureKey: f.messageKey)
-          : state.copyWith(status: MedicationsStatus.ready),
-      (list) => state.copyWith(status: MedicationsStatus.ready, medications: list),
+      (f) {
+        _scheduleRetry(f);
+        return state.medications.isEmpty
+            ? state.copyWith(status: MedicationsStatus.failure, failureKey: f.messageKey)
+            : state.copyWith(status: MedicationsStatus.ready);
+      },
+      (list) {
+        _attempt = 0;
+        return state.copyWith(status: MedicationsStatus.ready, medications: list);
+      },
     ));
+  }
+
+  /// A failed Firestore stream is finished: resubscribe on transient errors
+  /// (network/server) with backoff. Permission errors are NOT retried blindly.
+  void _scheduleRetry(Failure f) {
+    if (f is! NetworkFailure && f is! ServerFailure) return;
+    final p = _profile;
+    if (p == null) return;
+    _retry?.cancel();
+    _attempt = math.min(_attempt + 1, 6);
+    _retry = Timer(Duration(seconds: math.min(2 << _attempt, 60)), () {
+      if (!isClosed) add(MedicationsWatchRequested(p, force: true));
+    });
   }
 
   Future<void> _onDelete(MedicationDeleteRequested e, Emitter<MedicationsState> emit) async {
@@ -63,6 +89,7 @@ class MedicationsBloc extends Bloc<MedicationsEvent, MedicationsState> {
 
   @override
   Future<void> close() {
+    _retry?.cancel();
     _sub?.cancel();
     return super.close();
   }

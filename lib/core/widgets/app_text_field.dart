@@ -56,10 +56,8 @@ class _AppTextFieldState extends State<AppTextField> {
     final hasError = widget.errorText != null;
     final dark = context.isDark;
     final radius = BorderRadius.circular(16);
-    OutlineInputBorder border(Color c, [double w = 1.2]) => OutlineInputBorder(
-      borderRadius: radius,
-      borderSide: BorderSide(color: c, width: w),
-    );
+    OutlineInputBorder border(Color c, [double w = 1.2]) =>
+        OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: c, width: w));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,40 +85,29 @@ class _AppTextFieldState extends State<AppTextField> {
           maxLines: widget.obscure ? 1 : widget.maxLines,
           inputFormatters: widget.inputFormatters,
           autofillHints: widget.autofillHints,
+          textDirection: widget.forceLtr ? TextDirection.ltr : null,
           style: TextStyle(fontSize: 16.5, color: context.inkColor),
           decoration: InputDecoration(
             hintText: widget.hint,
-            hintStyle: TextStyle(
-              color: context.inkSoftColor.withValues(alpha: 0.6),
-            ),
+            hintStyle: TextStyle(color: context.inkSoftColor.withValues(alpha: 0.6)),
             filled: true,
             fillColor: Colors.white.withValues(alpha: dark ? 0.08 : 0.9),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             prefixIcon: widget.prefixIcon == null
                 ? null
                 : Icon(widget.prefixIcon, color: context.inkSoftColor),
             suffixIcon: widget.obscure
                 ? IconButton(
                     icon: Icon(
-                      _hidden
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
+                      _hidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                       color: context.inkSoftColor,
                     ),
                     onPressed: () => setState(() => _hidden = !_hidden),
                   )
                 : null,
-            enabledBorder: border(
-              hasError ? AppColors.danger : Colors.white.withValues(alpha: 0.9),
-            ),
+            enabledBorder: border(hasError ? AppColors.danger : Colors.white.withValues(alpha: 0.9)),
             disabledBorder: border(AppColors.platinum),
-            focusedBorder: border(
-              hasError ? AppColors.danger : context.primaryColor,
-              1.8,
-            ),
+            focusedBorder: border(hasError ? AppColors.danger : context.primaryColor, 1.8),
           ),
         ),
         AnimatedSize(
@@ -130,19 +117,12 @@ class _AppTextFieldState extends State<AppTextField> {
                   padding: const EdgeInsets.only(top: 6, left: 4, right: 4),
                   child: Row(
                     children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 16,
-                        color: AppColors.danger,
-                      ),
+                      const Icon(Icons.error_outline, size: 16, color: AppColors.danger),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           widget.errorText!,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: AppColors.danger,
-                          ),
+                          style: const TextStyle(fontSize: 13, color: AppColors.danger),
                         ),
                       ),
                     ],

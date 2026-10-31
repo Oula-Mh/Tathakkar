@@ -31,10 +31,14 @@ abstract final class Routes {
   // Misc
   static const inbox = '/inbox';
   static const reminderSettings = '/account/reminders';
+  static const reminderHealth = '/account/reminders/health';
   static const notificationPermission = '/permissions/notifications';
   static const reminder = '/reminder';
-  static String reminderLocation(String payload) =>
-      '$reminder?p=${Uri.encodeQueryComponent(payload)}';
+  /// [alarm] = opened by an alarm notification: the screen is the ONLY thing shown
+  /// (no splash, no home), and closing it leaves the app.
+  static String reminderLocation(String payload, {String? action, bool alarm = false}) =>
+      '$reminder?p=${Uri.encodeQueryComponent(payload)}'
+      '${action == null ? '' : '&a=$action'}${alarm ? '&alarm=1' : ''}';
 
   static const authRoutes = {login, register, forgotPassword};
 }

@@ -31,4 +31,15 @@ class ProfilesRepositoryImpl implements ProfilesRepository {
     required String relation,
   }) =>
       guard(() => _remote.addLocal(uid, name, relation));
+
+  @override
+  Future<Either<Failure, Unit>> ensureSelfProfile({
+    required String uid,
+    required String name,
+    required String email,
+  }) =>
+      guard(() async {
+        await _remote.ensureSelf(uid, name, email);
+        return unit;
+      });
 }
